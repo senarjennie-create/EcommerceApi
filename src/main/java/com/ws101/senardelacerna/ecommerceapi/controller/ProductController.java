@@ -1,6 +1,6 @@
 package com.ws101.senardelacerna.ecommerceapi.controller;
 
-import com.ws101.senardelacerna.ecommerceapi.model.Product;
+import com.ws101.senardelacerna.ecommerceapi.entity.Product;
 import com.ws101.senardelacerna.ecommerceapi.service.ProductService;
 
 import org.springframework.http.ResponseEntity;

@@ -1,9 +1,11 @@
 package com.ws101.senardelacerna.ecommerceapi.service;
 
+import com.ws101.senardelacerna.ecommerceapi.entity.Category;
+import com.ws101.senardelacerna.ecommerceapi.entity.Product;
 import com.ws101.senardelacerna.ecommerceapi.exception.ProductNotFoundException;
-import com.ws101.senardelacerna.ecommerceapi.model.Product;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -21,17 +23,36 @@ public class ProductService {
     private final AtomicLong counter = new AtomicLong();
 
     public ProductService() {
+        // Create sample categories
+        Category electronics = new Category();
+        electronics.setId(1L);
+        electronics.setName("Electronics");
+        electronics.setDescription("Electronic devices and accessories");
+
+        Category clothing = new Category();
+        clothing.setId(2L);
+        clothing.setName("Clothing");
+        clothing.setDescription("Apparel and fashion items");
+
         // Sample data (10 products)
         for (int i = 1; i <= 10; i++) {
-            productList.add(new Product(
-                    counter.incrementAndGet(),
+            Product product = new Product(
                     "Product " + i,
                     "Description " + i,
-                    100.0 * i,
-                    i % 2 == 0 ? "Electronics" : "Clothing",
+                    BigDecimal.valueOf(100.0 * i),
                     10 * i,
-                    "image" + i + ".jpg"
-            ));
+                    "image" + i + ".jpg",
+                    i % 2 == 0 ? electronics : clothing
+            );
+            // Use reflection or direct field access for id since it's auto-generated
+            try {
+                var idField = Product.class.getDeclaredField("id");
+                idField.setAccessible(true);
+                idField.set(product, (long) i);
+            } catch (Exception e) {
+                // Ignore - id will be set by JPA
+            }
+            productList.add(product);
         }
     }
 
@@ -90,10 +111,15 @@ public class ProductService {
             product.setDescription((String) updates.get("description"));
 
         if (updates.containsKey("price"))
-            product.setPrice((Double) updates.get("price"));
+            product.setPrice(new BigDecimal(updates.get("price").toString()));
 
-        if (updates.containsKey("category"))
-            product.setCategory((String) updates.get("category"));
+        if (updates.containsKey("category")) {
+            // Handle category as either a Category object or a name string
+            Object categoryValue = updates.get("category");
+            if (categoryValue instanceof Category) {
+                product.setCategory((Category) categoryValue);
+            }
+        }
 
         if (updates.containsKey("stockQuantity"))
             product.setStockQuantity((Integer) updates.get("stockQuantity"));
@@ -120,7 +146,8 @@ public class ProductService {
         switch (type.toLowerCase()) {
             case "category":
                 return productList.stream()
-                        .filter(p -> p.getCategory().equalsIgnoreCase(value))
+                        .filter(p -> p.getCategory() != null && 
+                                     p.getCategory().getName().equalsIgnoreCase(value))
                         .collect(Collectors.toList());
 
             case "name":
@@ -131,7 +158,7 @@ public class ProductService {
             case "price":
                 double price = Double.parseDouble(value);
                 return productList.stream()
-                        .filter(p -> p.getPrice() <= price)
+                        .filter(p -> p.getPrice().doubleValue() <= price)
                         .collect(Collectors.toList());
 
             default:
