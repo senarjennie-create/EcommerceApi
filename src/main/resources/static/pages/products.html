@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/product.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <title>Products</title>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Clothing Shop</div>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/pages/products.html">Shop</a></li>
+                <li><a href="/pages/cart.html">Cart</a></li>
+                <li><a href="/pages/account.html">Account</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="page-layout">
+        <aside>
+            <h2>Filter</h2>
+            <form>
+                <label>
+                    <input type="checkbox"> On Sale
+                </label><br>
+
+                <label>
+                    <input type="radio" name="price"> Low to High
+                </label><br>
+
+                <label>
+                    <input type="radio" name="price"> High to Low
+                </label>
+            </form>
+        </aside>
+
+        <main>
+            <h1>Product List</h1>
+            <section class="product-container">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading products...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Senar Products. All rights reserved.</p>
+    </footer>
+
+    <script src="/js/script.js"></script>
+</body>
+</html>
