@@ -1,0 +1,257 @@
+:root {
+    --primary-color: #2c3e50;
+    --accent-color: #e67e22;
+    --bg-light: #f4f4f4;
+    --text-main: black;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background-color: var(--bg-light);
+    color: var(--text-main);
+}
+
+nav {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: antiquewhite;
+    padding: 15px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+nav .logo {
+    font-weight: bold;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+nav ul {
+    display: flex;
+    flex-direction: column;
+    gap: 10rem;
+    list-style: none;
+    align-items: center;
+}
+
+nav ul li a {
+    text-decoration: none;
+    color: black;
+    padding: 5px 10px;
+    transition: 0.3s;
+}
+
+nav ul li a:hover {
+    background-color: #eb3d3d;
+    color: white;
+    border-radius: 5px;
+}
+
+nav ul li a:focus {
+    outline: 3px solid #d6731c;
+    outline-offset: 2px;
+}
+
+.welcome-box {
+    background-color: var(--accent-color);
+    color: white;
+    text-align: center;
+    padding: 50px 20px;
+}
+
+.welcome-box h1 {
+    font-size: 2.5rem;
+}
+
+.hero {
+    background-color: var(--primary-color);
+    color: white;
+    text-align: center;
+    padding: 80px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+.hero h1 {
+    font-size: 2.5rem;
+    margin: 0;
+    break-after: always;
+}
+
+.hero p {
+    font-size: 1.2rem;
+    margin: 0;
+    max-width: 500px;
+}
+
+.hero-btn {
+    display: inline-block;
+    padding: 12px 25px;
+    background-color: var(--accent-color);
+    color: white;
+    text-decoration: none;
+    font-size: 1rem;
+    border-radius: 5em;
+    transition: 0.3s;
+}
+
+.hero-btn:hover {
+    opacity: 0.8;
+}
+
+section {
+    text-align: center;
+    padding: 50px 20px;
+}
+
+section h2 {
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: 2fr;
+    gap: 20px;
+    justify-items: center;
+    margin-bottom: 20px;
+}
+
+.product {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 200px;
+    text-align: center;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.product img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.product h3 {
+    margin: 10px 0 5px;
+}
+
+.product p {
+    margin-bottom: 10px;
+}
+
+.product button {
+    padding: 8px 15px;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: 0.3s;
+}
+
+.product button:hover {
+    opacity: 0.8;
+}
+
+/* ==========================
+   DISCOUNTED PRODUCTS FIX
+   ========================== */
+.discounted h2 {
+    color: var(--primary-color);
+}
+
+.discounted .product p del {
+    color: gray;
+    margin-right: 5px;
+    font-size: 0.9rem;
+}
+
+.discounted .product p {
+    font-weight: bold;
+}
+
+/* OPTIONAL HIGHLIGHT */
+.discounted .product {
+    border: 2px solid #e67e22;
+}
+
+footer {
+    margin-top: auto;
+    width: 100%;
+    background-color: var(--primary-color);
+    color: white;
+    text-align: center;
+    padding: 20px;
+    position: relative;
+    bottom: 0;
+}
+
+footer p {
+    margin: 0;
+    color: white;
+}
+
+@media (min-width: 481px) {
+    nav {
+        flex-direction: row;
+        justify-content: center;
+    }
+
+    nav ul {
+        flex-direction: row;
+        gap: 20px;
+    }
+
+    .product-grid {
+        grid-template-columns: repeat(4, 2fr);
+    }
+}
+
+@media (min-width: 769px) {
+    nav {
+        justify-content: space-between;
+        padding: 15px 50px;
+    }
+
+    nav ul {
+        gap: 30px;
+    }
+
+    .product-grid {
+        grid-template-columns: repeat(4, 2fr);
+        gap: 40px;
+    }
+
+    .hero {
+        flex-direction: flex;
+        text-align: left;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

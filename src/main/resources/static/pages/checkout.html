@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/checkout.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <title>Checkout</title>
+</head>
+
+<body>
+    <nav>
+        <div class="logo">Clothing Shop</div>
+        <ul>
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/pages/products.html">Shop</a></li>
+            <li><a href="/pages/cart.html">Cart</a></li>
+            <li><a href="/pages/account.html">Account</a></li>
+        </ul>
+    </nav>
+
+    <main class="checkout-container">
+        <section class="checkout-form">
+            <h1>Checkout</h1>
+
+            <form id="checkout-form">
+                <fieldset>
+                    <legend>Shipping Address</legend>
+
+                    <label>Name:
+                        <input type="text" name="name" required>
+                    </label>
+
+                    <label>Province:
+                        <input type="text" name="province" required>
+                    </label>
+
+                    <label>Municipality:
+                        <input type="text" name="municipality" required>
+                    </label>
+
+                    <label>Street:
+                        <input type="text" name="street" required>
+                    </label>
+
+                    <label>Zip Code:
+                        <input type="text" name="zip" required>
+                    </label>
+                </fieldset>
+
+                <div class="payment-method-section">
+                    <h2>Payment Method</h2>
+
+                    <label>
+                        <input type="radio" name="payment" value="credit-card" required>
+                        Credit Card
+                    </label>
+
+                    <label>
+                        <input type="radio" name="payment" value="paypal">
+                        PayPal
+                    </label>
+                </div>
+            </form>
+        </section>
+
+        <aside class="order-summary">
+            <h2>Order Summary</h2>
+
+            <p>Items: <span id="item-count">0</span></p>
+            <p>Subtotal: <strong id="subtotal-amount">&#8369;0</strong></p>
+            <p>Shipping: <strong id="shipping-fee">&#8369;0</strong></p>
+            <p>Total: <strong id="total-amount">&#8369;0</strong></p>
+
+            <button id="place-order-btn">Place Order</button>
+        </aside>
+    </main>
+
+    <script src="/js/script.js"></script>
+
+    <footer>
+        <p>&copy; 2026 Senar Products. All rights reserved.</p>
+    </footer>
+</body>
+
+</html>

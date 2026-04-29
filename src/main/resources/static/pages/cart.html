@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/cart.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <title>Shopping Cart</title>
+</head>
+
+<body>
+    <nav>
+        <div class="logo">Clothing Shop</div>
+        <ul>
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/pages/products.html">Shop</a></li>
+            <li><a href="/pages/cart.html">Cart</a></li>
+            <li><a href="/pages/account.html">Account</a></li>
+        </ul>
+    </nav>
+
+    <h1>Shopping Cart</h1>
+
+    <ul class="cart-items">
+        <li class="cart-card">
+            <img src="/images/shirt.jpg" alt="Product 1">
+
+            <div class="product-info">
+                <h3>Product 1</h3>
+                <p class="price">&#8369;250</p>
+            </div>
+
+            <input type="number" value="1" min="1">
+        </li>
+
+        <li class="cart-card">
+            <img src="/images/bado.jpg" alt="Product 2">
+
+            <div class="product-info">
+                <h3>Product 2</h3>
+                <p class="price">&#8369;250</p>
+            </div>
+
+            <input type="number" value="1" min="1">
+        </li>
+    </ul>
+
+    <section class="order-summary">
+        <h2>Order Summary</h2>
+
+        <div class="summary-row">
+            <span>Product subtotal</span>
+            <span>&#8369;250.46</span>
+        </div>
+
+        <div class="summary-row">
+            <span>original price</span>
+            <span>&#8369;500</span>
+        </div>
+
+        <div class="summary-row total">
+            <span>Product discount</span>
+            <span>-&#8369;100.54</span>
+        </div>
+
+        <div class="summary-row total">
+            <span>Shipping subtotal</span>
+            <span>&#8369;0.00</span>
+        </div>
+
+        <div class="summary-row total">
+            <span>Shipping fee</span>
+            <span>&#8369;60.00</span>
+        </div>
+    </section>
+
+    <section class="subtotal">
+        <h2>Subtotal: &#8369;500</h2>
+    </section>
+
+    <div class="checkout-btn">
+        <a href="/pages/checkout.html">Proceed to Checkout</a>
+    </div>
+
+    <section class="empty-cart">
+        <p>Your cart is currently empty</p>
+    </section>
+
+    <script src="/js/script.js"></script>
+</body>
+
+</html>

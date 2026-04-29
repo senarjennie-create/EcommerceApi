@@ -1,6 +1,6 @@
-const API_BASE_URL = "http://localhost:8080/api/v1";
+const API_BASE_URL = "/api/v1";
 const PRODUCTS_ENDPOINT = `${API_BASE_URL}/products`;
-const IMAGE_FALLBACK = "/images/cloth.jpg";
+const IMAGE_FALLBACK = "/images/product1.jpg";
 
 let products = [];
 let cart = [];
@@ -91,72 +91,54 @@ function createProductCard(product) {
 }
 
 function renderProductGrid(productList) {
-    const main = document.querySelector("main");
-    if (!main) {
-        console.error("[renderProductGrid] No <main> element found.");
+    const productContainer = document.querySelector(".product-container");
+    if (!productContainer) {
+        console.error("[renderProductGrid] No product container found.");
         return;
     }
 
-    const heading = main.querySelector("h1")?.outerHTML ?? "<h1>Product List</h1>";
-
     if (productList.length === 0) {
-        main.innerHTML = `
-            ${heading}
-            <section class="product-container empty-state-panel">
-                <div class="empty-state">
-                    <h2>No products available</h2>
-                    <p>The API returned an empty list. Add products in the backend and refresh this page.</p>
-                </div>
-            </section>
+        productContainer.innerHTML = `
+            <div class="empty-state empty-state-panel">
+                <h2>No products available</h2>
+                <p>The API returned an empty list. Add products in the backend and refresh this page.</p>
+            </div>
         `;
         return;
     }
 
-    main.innerHTML = `
-        ${heading}
-        <section class="product-container">
-            ${productList.map(createProductCard).join("")}
-        </section>
-    `;
+    productContainer.innerHTML = productList.map(createProductCard).join("");
 }
 
 function renderLoadingState() {
-    const main = document.querySelector("main");
-    if (!main) {
+    const productContainer = document.querySelector(".product-container");
+    if (!productContainer) {
         return;
     }
 
-    const heading = main.querySelector("h1")?.outerHTML ?? "<h1>Product List</h1>";
-    main.innerHTML = `
-        ${heading}
-        <section class="product-container">
-            <div class="loading-spinner">
-                <div class="spinner"></div>
-                <p>Loading products...</p>
-            </div>
-        </section>
+    productContainer.innerHTML = `
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Loading products...</p>
+        </div>
     `;
 }
 
 function renderProductError(error) {
-    const main = document.querySelector("main");
-    if (!main) {
+    const productContainer = document.querySelector(".product-container");
+    if (!productContainer) {
         return;
     }
 
-    const heading = main.querySelector("h1")?.outerHTML ?? "<h1>Product List</h1>";
     const message = error instanceof ApiRequestError
         ? error.message
         : "Unable to load products right now. Please try again later.";
 
-    main.innerHTML = `
-        ${heading}
-        <section class="product-container">
-            <div class="error-message">
-                <h2>Could not load products</h2>
-                <p>${message}</p>
-            </div>
-        </section>
+    productContainer.innerHTML = `
+        <div class="error-message">
+            <h2>Could not load products</h2>
+            <p>${message}</p>
+        </div>
     `;
 }
 
@@ -207,7 +189,7 @@ function setupEventDelegation() {
 }
 
 async function initializeProductsPage() {
-    if (!document.querySelector("main")) {
+    if (!document.querySelector(".product-container")) {
         return;
     }
 
