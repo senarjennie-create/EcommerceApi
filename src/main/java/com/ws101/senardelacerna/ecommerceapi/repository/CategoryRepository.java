@@ -69,4 +69,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      */
     @Query("SELECT c FROM Category c WHERE SIZE(c.products) > 0")
     List<Category> findCategoriesWithProducts();
+
+    boolean existsById(String name);
 }
