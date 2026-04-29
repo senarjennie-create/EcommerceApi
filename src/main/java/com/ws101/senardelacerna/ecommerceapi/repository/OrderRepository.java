@@ -12,21 +12,20 @@ import java.util.Optional;
 
 /**
  * Repository interface for Order entity.
+ * Extends JpaRepository to provide built-in CRUD operations.
  * 
- * <p>Extends {@link JpaRepository} to provide built-in CRUD operations:</p>
+ * <p><b>Custom Query Methods (Method Naming):</b></p>
  * <ul>
- *   <li>{@code save(S)} - Save or update an entity</li>
- *   <li>{@code findById(ID)} - Find entity by ID</li>
- *   <li>{@code findAll()} - Find all entities</li>
- *   <li>{@code delete(T)} - Delete an entity</li>
- *   <li>{@code count()} - Count entities</li>
+ *   <li>{@code findByStatus(OrderStatus)} - Find orders by status</li>
+ *   <li>{@code findByCustomerEmail(String)} - Find orders by customer email</li>
+ *   <li>{@code findByOrderDateBetween(LocalDateTime, LocalDateTime)} - Date range</li>
  * </ul>
  * 
- * <p><b>Custom Query Methods:</b></p>
+ * <p><b>Custom JPQL Queries (@Query):</b></p>
  * <ul>
- *   <li>{@code findByCustomerEmail(String)} - Find orders by customer email</li>
- *   <li>{@code findByStatus(Order.OrderStatus)} - Find orders by status</li>
- *   <li>{@code findByOrderDateBetween(LocalDateTime, LocalDateTime)} - Find orders in date range</li>
+ *   <li>{@code findByStatusWithItems} - Orders with items (eager)</li>
+ *   <li>{@code findByCustomerNameContaining} - Customer search</li>
+ *   <li>{@code findRecentOrders} - Recent orders by date</li>
  * </ul>
  * 
  * @author senardelacerna
@@ -35,9 +34,18 @@ import java.util.Optional;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
+    // ==================== Method Naming Queries ====================
+    
     /**
-     * Find all orders for a specific customer by email.
-     * Uses Spring Data JPA method naming convention.
+     * Find all orders with a specific status.
+     * 
+     * @param status the order status
+     * @return list of orders with the specified status
+     */
+    List<Order> findByStatus(Order.OrderStatus status);
+
+    /**
+     * Find orders by customer email.
      * 
      * @param email the customer email
      * @return list of orders for the customer
@@ -45,67 +53,53 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByCustomerEmail(String email);
 
     /**
-     * Find all orders with a specific status.
-     * Uses Spring Data JPA method naming convention.
+     * Find orders placed within a date range.
      * 
-     * @param status the order status
-     * @return list of orders with the given status
-     */
-    List<Order> findByStatus(Order.OrderStatus status);
-
-    /**
-     * Find orders placed within a specific date range.
-     * 
-     * @param startDate the start date
-     * @param endDate the end date
+     * @param startDate start of date range
+     * @param endDate end of date range
      * @return list of orders in the date range
      */
     List<Order> findByOrderDateBetween(LocalDateTime startDate, LocalDateTime endDate);
 
-    /**
-     * Find orders by customer name.
-     * 
-     * @param customerName the customer name
-     * @return list of orders for the customer
-     */
-    List<Order> findByCustomerNameContainingIgnoreCase(String customerName);
-
-    // ==================== Custom JPQL Queries ====================
+    // ==================== JPQL Custom Queries ====================
 
     /**
-     * Find orders with total amount above a threshold.
-     * Uses JPQL.
+     * Find order by ID and fetch its items eagerly.
+     * Uses JOIN FETCH to avoid N+1 query problem.
      * 
-     * <p><b>JPQL Query:</b></p>
-     * <pre>SELECT o FROM Order o WHERE o.totalAmount > :amount</pre>
-     * 
-     * @param amount the minimum total amount
-     * @return list of high-value orders
+     * @param id the order ID
+     * @return optional containing the order with items if found
      */
-    @Query("SELECT o FROM Order o WHERE o.totalAmount > :amount ORDER BY o.totalAmount DESC")
-    List<Order> findHighValueOrders(@Param("amount") java.math.BigDecimal amount);
+    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.orderItems WHERE o.id = :id")
+    Optional<Order> findByIdWithItems(@Param("id") Long id);
+
+    /**
+     * Find orders by customer name containing the search string.
+     * 
+     * @param name the customer name search string
+     * @return list of matching orders
+     */
+    @Query("SELECT o FROM Order o WHERE LOWER(o.customerName) LIKE LOWER(CONCAT('%', :name, '%'))")
+    List<Order> findByCustomerNameContaining(@Param("name") String name);
 
     /**
      * Find recent orders (last N days).
      * 
-     * <p><b>JPQL Query:</b></p>
- * <pre>SELECT o FROM Order o WHERE o.orderDate > :date</pre>
-     * 
      * @param date the cutoff date
      * @return list of recent orders
      */
-    @Query("SELECT o FROM Order o WHERE o.orderDate > :date ORDER BY o.orderDate DESC")
+    @Query("SELECT o FROM Order o WHERE o.orderDate >= :date ORDER BY o.orderDate DESC")
     List<Order> findRecentOrders(@Param("date") LocalDateTime date);
 
     /**
-     * Count orders by status.
-     * 
-     * <p><b>JPQL Query:</b></p>
-     * <pre>SELECT COUNT(o) FROM Order o WHERE o.status = :status</pre>
+     * Find orders by status with their total amount above threshold.
      * 
      * @param status the order status
-     * @return count of orders with the given status
+     * @param minAmount minimum total amount
+     * @return list of orders matching criteria
      */
-    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = :status")
-    Long countByStatus(@Param("status") Order.OrderStatus status);
+    @Query("SELECT o FROM Order o WHERE o.status = :status AND o.totalAmount >= :minAmount")
+    List<Order> findByStatusAndMinAmount(
+            @Param("status") Order.OrderStatus status, 
+            @Param("minAmount") java.math.BigDecimal minAmount);
 }

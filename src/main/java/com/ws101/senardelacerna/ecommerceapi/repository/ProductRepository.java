@@ -12,29 +12,22 @@ import java.util.List;
 
 /**
  * Repository interface for Product entity.
+ * Extends JpaRepository to provide built-in CRUD operations.
  * 
- * <p>Extends {@link JpaRepository} to provide built-in CRUD operations:</p>
+ * <p><b>Custom Query Methods (Method Naming):</b></p>
  * <ul>
- *   <li>{@code save(S)} - Save or update an entity</li>
- *   <li>{@code findById(ID)} - Find entity by ID</li>
- *   <li>{@code findAll()} - Find all entities</li>
- *   <li>{@code delete(T)} - Delete an entity</li>
- *   <li>{@code count()} - Count entities</li>
+ *   <li>{@code findByCategoryName(String)} - Find products by category name</li>
+ *   <li>{@code findByPriceBetween(BigDecimal, BigDecimal)} - Price range finder</li>
+ *   <li>{@code findByNameContainingIgnoreCase(String)} - Name search (case-insensitive)</li>
+ *   <li>{@code findByStockQuantityLessThan(Integer)} - Low stock alerts</li>
  * </ul>
  * 
- * <p><b>Custom Query Methods:</b></p>
+ * <p><b>Custom JPQL Queries (@Query):</b></p>
  * <ul>
- *   <li>{@code findByCategory(Category)} - Find products by category (relationship)</li>
- *   <li>{@code findByCategoryName(String)} - Find products by category name (method naming)</li>
- *   <li>{@code findByPriceBetween(BigDecimal, BigDecimal)} - Find products in price range</li>
- *   <li>{@code findByNameContaining(String)} - Find products by name containing keyword</li>
- *   <li>{@code findByStockQuantityLessThan(Integer)} - Find low stock products</li>
- * </ul>
- * 
- * <p><b>Custom JPQL Queries:</b></p>
- * <ul>
- *   <li>{@code findProductsInPriceRange} - Products within a price range using JPQL</li>
- *   <li>{@code findProductsByCategoryName} - Products by category name using JPQL</li>
+ *   <li>{@code findProductsInPriceRange} - Products within price range</li>
+ *   <li>{@code findProductsByCategoryName} - Products by category (JPQL)</li>
+ *   <li>{@code findExpensiveProducts} - Products above price threshold</li>
+ *   <li>{@code countByCategoryName} - Count products per category</li>
  * </ul>
  * 
  * @author senardelacerna
@@ -43,30 +36,22 @@ import java.util.List;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
+    // ==================== Method Naming Queries ====================
+    
     /**
      * Find all products belonging to a specific category.
-     * Uses Spring Data JPA method naming convention.
+     * Uses Spring Data JPA's method naming convention.
      * 
-     * @param category the category to search for
-     * @return list of products in the given category
+     * @param name the category name
+     * @return list of products in the specified category
      */
-    List<Product> findByCategory(Category category);
+    List<Product> findByCategoryName(String name);
 
     /**
-     * Find all products by category name.
-     * Uses Spring Data JPA method naming convention.
+     * Find products within a price range.
      * 
-     * @param categoryName the name of the category
-     * @return list of products in the given category
-     */
-    List<Product> findByCategoryName(String categoryName);
-
-    /**
-     * Find products within a specific price range.
-     * Uses Spring Data JPA method naming convention.
-     * 
-     * @param minPrice the minimum price (inclusive)
-     * @param maxPrice the maximum price (inclusive)
+     * @param minPrice minimum price (inclusive)
+     * @param maxPrice maximum price (inclusive)
      * @return list of products within the price range
      */
     List<Product> findByPriceBetween(BigDecimal minPrice, BigDecimal maxPrice);
@@ -74,76 +59,59 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     /**
      * Find products whose name contains the specified string (case-insensitive).
      * 
-     * @param name the name pattern to search for
+     * @param name the search string
      * @return list of products with matching names
      */
     List<Product> findByNameContainingIgnoreCase(String name);
 
     /**
-     * Find products with stock quantity less than the specified value.
-     * Useful for identifying low stock items.
+     * Find products with stock quantity less than the specified threshold.
+     * Useful for low stock alerts.
      * 
-     * @param quantity the threshold stock quantity
+     * @param threshold the stock quantity threshold
      * @return list of products with low stock
      */
-    List<Product> findByStockQuantityLessThan(Integer quantity);
+    List<Product> findByStockQuantityLessThan(Integer threshold);
 
-    /**
-     * Find products with stock quantity greater than or equal to the specified value.
-     * 
-     * @param quantity the minimum stock quantity
-     * @return list of products with sufficient stock
-     */
-    List<Product> findByStockQuantityGreaterThanEqual(Integer quantity);
-
-    // ==================== Custom JPQL Queries ====================
+    // ==================== JPQL Custom Queries ====================
 
     /**
      * Find products within a price range using JPQL.
      * 
-     * <p><b>JPQL Query:</b></p>
-     * <pre>SELECT p FROM Product p WHERE p.price BETWEEN :min AND :max</pre>
-     * 
-     * @param min the minimum price
-     * @param max the maximum price
+     * @param minPrice minimum price
+     * @param maxPrice maximum price
      * @return list of products within the price range
      */
-    @Query("SELECT p FROM Product p WHERE p.price BETWEEN :min AND :max")
-    List<Product> findProductsInPriceRange(@Param("min") BigDecimal min, @Param("max") BigDecimal max);
+    @Query("SELECT p FROM Product p WHERE p.price BETWEEN :minPrice AND :maxPrice")
+    List<Product> findProductsInPriceRange(
+            @Param("minPrice") BigDecimal minPrice, 
+            @Param("maxPrice") BigDecimal maxPrice);
 
     /**
      * Find products by category name using JPQL.
+     * Demonstrates JOIN between Product and Category.
      * 
-     * <p><b>JPQL Query:</b></p>
-     * <pre>SELECT p FROM Product p WHERE p.category.name = :categoryName</pre>
-     * 
-     * @param categoryName the name of the category
-     * @return list of products in the given category
+     * @param categoryName the category name
+     * @return list of products in the specified category
      */
-    @Query("SELECT p FROM Product p WHERE p.category.name = :categoryName")
+    @Query("SELECT p FROM Product p JOIN p.category c WHERE c.name = :categoryName")
     List<Product> findProductsByCategoryName(@Param("categoryName") String categoryName);
 
     /**
-     * Find products with price above a certain threshold using JPQL.
+     * Find products with price above a threshold.
      * 
-     * <p><b>JPQL Query:</b></p>
-     * <pre>SELECT p FROM Product p WHERE p.price > :price</pre>
-     * 
-     * @param price the minimum price threshold
+     * @param price the price threshold
      * @return list of expensive products
      */
     @Query("SELECT p FROM Product p WHERE p.price > :price ORDER BY p.price DESC")
     List<Product> findExpensiveProducts(@Param("price") BigDecimal price);
 
     /**
-     * Count products by category name using JPQL.
+     * Count products by category name.
      * 
-     * <p><b>JPQL Query:</b></p>
-     * <pre>SELECT COUNT(p) FROM Product p WHERE p.category.name = :categoryName</pre>
-     * 
-     * @param categoryName the name of the category
+     * @param categoryName the category name
      * @return count of products in the category
      */
     @Query("SELECT COUNT(p) FROM Product p WHERE p.category.name = :categoryName")
-    Long countByCategoryName(@Param("categoryName") String categoryName);
+    long countByCategoryName(@Param("categoryName") String categoryName);
 }

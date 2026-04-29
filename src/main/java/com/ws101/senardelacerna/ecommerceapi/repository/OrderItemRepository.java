@@ -1,6 +1,7 @@
 package com.ws101.senardelacerna.ecommerceapi.repository;
 
 import com.ws101.senardelacerna.ecommerceapi.entity.OrderItem;
+import com.ws101.senardelacerna.ecommerceapi.entity.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -8,23 +9,23 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository interface for OrderItem entity.
+ * Extends JpaRepository to provide built-in CRUD operations.
  * 
- * <p>Extends {@link JpaRepository} to provide built-in CRUD operations:</p>
+ * <p><b>Custom Query Methods (Method Naming):</b></p>
  * <ul>
- *   <li>{@code save(S)} - Save or update an entity</li>
- *   <li>{@code findById(ID)} - Find entity by ID</li>
- *   <li>{@code findAll()} - Find all entities</li>
- *   <li>{@code delete(T)} - Delete an entity</li>
- *   <li>{@code count()} - Count entities</li>
+ *   <li>{@code findByOrderId(Long)} - Find items by order ID</li>
+ *   <li>{@code findByProductId(Long)} - Find items containing product</li>
  * </ul>
  * 
- * <p><b>Custom Query Methods:</b></p>
+ * <p><b>Custom JPQL Queries (@Query):</b></p>
  * <ul>
- *   <li>{@code findByOrderId(Long)} - Find order items by order ID</li>
- *   <li>{@code findByQuantityGreaterThan(Integer)} - Find items with high quantity</li>
+ *   <li>{@code findByOrderIdWithProduct} - Items with product details</li>
+ *   <li>{@code findByProductIdWithOrder} - Items with order details</li>
+ *   <li>{@code findTopSellingProducts} - Best selling products</li>
  * </ul>
  * 
  * @author senardelacerna
@@ -33,9 +34,10 @@ import java.util.List;
 @Repository
 public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
+    // ==================== Method Naming Queries ====================
+    
     /**
      * Find all order items for a specific order.
-     * Uses Spring Data JPA method naming convention.
      * 
      * @param orderId the order ID
      * @return list of order items for the order
@@ -43,37 +45,48 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     List<OrderItem> findByOrderId(Long orderId);
 
     /**
-     * Find order items with quantity greater than a threshold.
-     * 
-     * @param quantity the minimum quantity
-     * @return list of bulk order items
-     */
-    List<OrderItem> findByQuantityGreaterThan(Integer quantity);
-
-    // ==================== Custom JPQL Queries ====================
-
-    /**
-     * Find order items with subtotal above a threshold.
-     * Uses JPQL.
-     * 
-     * <p><b>JPQL Query:</b></p>
-     * <pre>SELECT oi FROM OrderItem oi WHERE (oi.price * oi.quantity) > :subtotal</pre>
-     * 
-     * @param subtotal the minimum subtotal
-     * @return list of high-value order items
-     */
-    @Query("SELECT oi FROM OrderItem oi WHERE (oi.price * oi.quantity) > :subtotal")
-    List<OrderItem> findHighValueOrderItems(@Param("subtotal") BigDecimal subtotal);
-
-    /**
-     * Find order items by product ID.
-     * 
-     * <p><b>JPQL Query:</b></p>
-     * <pre>SELECT oi FROM OrderItem oi JOIN oi.products p WHERE p.id = :productId</pre>
+     * Find all order items containing a specific product.
      * 
      * @param productId the product ID
      * @return list of order items containing the product
      */
-    @Query("SELECT oi FROM OrderItem oi JOIN oi.products p WHERE p.id = :productId")
-    List<OrderItem> findByProductId(@Param("productId") Long productId);
+    List<OrderItem> findByProductId(Long productId);
+
+    // ==================== JPQL Custom Queries ====================
+
+    /**
+     * Find order items with their associated product eagerly loaded.
+     * 
+     * @param orderId the order ID
+     * @return list of order items with product details
+     */
+    @Query("SELECT oi FROM OrderItem oi JOIN FETCH oi.products WHERE oi.order.id = :orderId")
+    List<OrderItem> findByOrderIdWithProduct(@Param("orderId") Long orderId);
+
+    /**
+     * Find order items with their associated order eagerly loaded.
+     * 
+     * @param productId the product ID
+     * @return list of order items with order details
+     */
+    @Query("SELECT oi FROM OrderItem oi JOIN FETCH oi.order WHERE :productId MEMBER OF oi.products")
+    List<OrderItem> findByProductIdWithOrder(@Param("productId") Long productId);
+
+    /**
+     * Find top selling products based on total quantity sold.
+     * 
+     * @param limit maximum number of products to return
+     * @return list of products with their total sales quantity
+     */
+    @Query("SELECT p, SUM(oi.quantity) as totalSold FROM OrderItem oi JOIN oi.products p GROUP BY p ORDER BY totalSold DESC")
+    List<Object[]> findTopSellingProducts(int limit);
+
+    /**
+     * Find order items where product price is above a threshold.
+     * 
+     * @param price the price threshold
+     * @return list of order items with expensive products
+     */
+    @Query("SELECT oi FROM OrderItem oi JOIN oi.products p WHERE p.price > :price")
+    List<OrderItem> findByProductPriceGreaterThan(@Param("price") BigDecimal price);
 }

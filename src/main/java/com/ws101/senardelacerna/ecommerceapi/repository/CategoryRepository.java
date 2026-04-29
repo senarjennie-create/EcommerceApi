@@ -11,20 +11,18 @@ import java.util.Optional;
 
 /**
  * Repository interface for Category entity.
+ * Extends JpaRepository to provide built-in CRUD operations.
  * 
- * <p>Extends {@link JpaRepository} to provide built-in CRUD operations:</p>
- * <ul>
- *   <li>{@code save(S)} - Save or update an entity</li>
- *   <li>{@code findById(ID)} - Find entity by ID</li>
- *   <li>{@code findAll()} - Find all entities</li>
- *   <li>{@code delete(T)} - Delete an entity</li>
- *   <li>{@code count()} - Count entities</li>
- * </ul>
- * 
- * <p><b>Custom Query Methods:</b></p>
+ * <p><b>Custom Query Methods (Method Naming):</b></p>
  * <ul>
  *   <li>{@code findByName(String)} - Find category by exact name</li>
- *   <li>{@code findByNameContaining(String)} - Find categories by name pattern</li>
+ *   <li>{@code findByNameContainingIgnoreCase(String)} - Name search</li>
+ * </ul>
+ * 
+ * <p><b>Custom JPQL Queries (@Query):</b></p>
+ * <ul>
+ *   <li>{@code findByNameWithProducts} - Category with products (eager)</li>
+ *   <li>{@code findCategoriesWithProductCount} - Categories with product counts</li>
  * </ul>
  * 
  * @author senardelacerna
@@ -33,43 +31,42 @@ import java.util.Optional;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
+    // ==================== Method Naming Queries ====================
+    
     /**
-     * Find a category by its exact name.
-     * Uses Spring Data JPA method naming convention.
+     * Find a category by exact name (case-insensitive).
      * 
      * @param name the category name
      * @return optional containing the category if found
      */
-    Optional<Category> findByName(String name);
+    Optional<Category> findByNameIgnoreCase(String name);
 
     /**
-     * Find categories whose name contains the specified string (case-insensitive).
+     * Find categories whose name contains the specified string.
      * 
-     * @param name the name pattern to search for
-     * @return list of categories with matching names
+     * @param name the search string
+     * @return list of matching categories
      */
     List<Category> findByNameContainingIgnoreCase(String name);
 
+    // ==================== JPQL Custom Queries ====================
+
     /**
-     * Check if a category exists by name.
+     * Find category by name and fetch its products eagerly.
+     * Uses JOIN FETCH to avoid N+1 query problem.
      * 
      * @param name the category name
-     * @return true if category exists
+     * @return optional containing the category with products if found
      */
-    boolean existsByName(String name);
-
-    // ==================== Custom JPQL Queries ====================
+    @Query("SELECT c FROM Category c LEFT JOIN FETCH c.products WHERE LOWER(c.name) = LOWER(:name)")
+    Optional<Category> findByNameWithProducts(@Param("name") String name);
 
     /**
-     * Find categories that have products with price above a threshold.
-     * Uses JPQL with a subquery.
+     * Find all categories with their product counts.
+     * Returns categories with at least one product.
      * 
-     * <p><b>JPQL Query:</b></p>
-     * <pre>SELECT DISTINCT c FROM Category c JOIN c.products p WHERE p.price > :price</pre>
-     * 
-     * @param price the minimum price threshold
-     * @return list of categories with expensive products
+     * @return list of categories with product count > 0
      */
-    @Query("SELECT DISTINCT c FROM Category c JOIN c.products p WHERE p.price > :price")
-    List<Category> findCategoriesWithExpensiveProducts(@Param("price") java.math.BigDecimal price);
+    @Query("SELECT c FROM Category c WHERE SIZE(c.products) > 0")
+    List<Category> findCategoriesWithProducts();
 }
