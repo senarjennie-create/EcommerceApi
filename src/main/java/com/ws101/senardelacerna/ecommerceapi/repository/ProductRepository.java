@@ -1,7 +1,6 @@
 package com.ws101.senardelacerna.ecommerceapi.repository;
 
 import com.ws101.senardelacerna.ecommerceapi.entity.Product;
-import com.ws101.senardelacerna.ecommerceapi.entity.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
