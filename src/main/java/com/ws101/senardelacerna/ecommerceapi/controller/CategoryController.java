@@ -10,12 +10,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * REST Controller for Category endpoints.
- * 
- * @author senardelacerna
- * @version 1.0
- */
 @RestController
 @RequestMapping("/api/categories")
 @RequiredArgsConstructor
@@ -27,34 +21,31 @@ public class CategoryController {
 
     @GetMapping
     public ResponseEntity<List<Category>> getAllCategories() {
-        log.info("REST request to get all categories");
+        log.info("GET /api/categories - Fetching all categories");
         return ResponseEntity.ok(categoryService.getAllCategories());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Category> getCategoryById(@PathVariable Long id) {
-        log.info("REST request to get category with id: {}", id);
+        log.info("GET /api/categories/{} - Fetching category", id);
         return ResponseEntity.ok(categoryService.getCategoryById(id));
     }
 
     @PostMapping
     public ResponseEntity<Category> createCategory(@RequestBody Category category) {
-        log.info("REST request to create category: {}", category.getName());
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(categoryService.createCategory(category));
+        log.info("POST /api/categories - Creating category: {}", category.getName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(categoryService.createCategory(category));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Category> updateCategory(
-            @PathVariable Long id, 
-            @RequestBody Category category) {
-        log.info("REST request to update category with id: {}", id);
+    public ResponseEntity<Category> updateCategory(@PathVariable Long id, @RequestBody Category category) {
+        log.info("PUT /api/categories/{} - Updating category", id);
         return ResponseEntity.ok(categoryService.updateCategory(id, category));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
-        log.info("REST request to delete category with id: {}", id);
+        log.info("DELETE /api/categories/{} - Deleting category", id);
         categoryService.deleteCategory(id);
         return ResponseEntity.noContent().build();
     }

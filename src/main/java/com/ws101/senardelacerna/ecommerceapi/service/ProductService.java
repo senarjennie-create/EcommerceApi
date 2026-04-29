@@ -1,5 +1,6 @@
 package com.ws101.senardelacerna.ecommerceapi.service;
 
+import com.ws101.senardelacerna.ecommerceapi.dto.ProductDTO;
 import com.ws101.senardelacerna.ecommerceapi.entity.Category;
 import com.ws101.senardelacerna.ecommerceapi.entity.Product;
 import com.ws101.senardelacerna.ecommerceapi.repository.CategoryRepository;
@@ -7,24 +8,13 @@ import com.ws101.senardelacerna.ecommerceapi.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
-/**
- * Service layer for Product business logic.
- * REFACTORED: Now uses JPA Repository instead of ArrayList.
- * 
- * <p>All manual list manipulation has been removed. Data persistence is now
- * handled by Spring Data JPA with automatic database operations.</p>
- * 
- * @author senardelacerna
- * @version 2.0
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -34,247 +24,117 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     
-    /**
-     * Retrieves all products from the database.
-     * Replaces the old ArrayList-based method.
-     * 
-     * @return List of all products
-     */
     @Transactional(readOnly = true)
-    public List<Product> getAllProducts() {
-        log.debug("Fetching all products from database");
-        return productRepository.findAll();
+    public List<ProductDTO> getAllProducts() {
+        log.debug("Fetching all products");
+        List<Product> products = productRepository.findAll();
+        return products.stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
     }
     
-    /**
-     * Retrieves a product by its ID.
-     * Uses repository findById() instead of manual list iteration.
-     * 
-     * @param id the product ID
-     * @return the product
-     * @throws EntityNotFoundException if product not found
-     */
     @Transactional(readOnly = true)
-    public Product getProductById(Long id) {
+    public ProductDTO getProductById(Long id) {
         log.debug("Fetching product with id: {}", id);
-        return productRepository.findById(id)
+        Product product = productRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
+        return convertToDTO(product);
     }
     
-    /**
-     * Creates a new product in the database.
-     * Replaces manual list addition with repository save().
-     * 
-     * @param product the product to create
-     * @return the saved product
-     * @throws DataIntegrityViolationException if business rules violated
-     */
-    public Product createProduct(Product product) {
+    public ProductDTO createProduct(Product product) {
         log.debug("Creating new product: {}", product.getName());
-
-        validateProduct(product);
-        product.setCategory(resolveCategory(product.getCategory()));
-        return productRepository.save(product);
+        
+        if (product.getCategory() != null && product.getCategory().getId() != null) {
+            Category category = categoryRepository.findById(product.getCategory().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Category not found"));
+            product.setCategory(category);
+        }
+        
+        Product savedProduct = productRepository.save(product);
+        return convertToDTO(savedProduct);
     }
     
-    /**
-     * Updates an existing product.
-     * Replaces manual find-and-replace logic with repository operations.
-     * 
-     * @param id the product ID
-     * @param productDetails the updated product data
-     * @return the updated product
-     * @throws EntityNotFoundException if product not found
-     */
-    public Product updateProduct(Long id, Product productDetails) {
+    public ProductDTO updateProduct(Long id, Product productDetails) {
         log.debug("Updating product with id: {}", id);
-
-        Product existingProduct = getProductById(id);
-
+        
+        Product existingProduct = productRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
+        
         existingProduct.setName(productDetails.getName());
         existingProduct.setDescription(productDetails.getDescription());
         existingProduct.setPrice(productDetails.getPrice());
         existingProduct.setStockQuantity(productDetails.getStockQuantity());
         existingProduct.setImageUrl(productDetails.getImageUrl());
-
-        existingProduct.setCategory(resolveCategory(productDetails.getCategory()));
-        validateProduct(existingProduct);
-        return productRepository.save(existingProduct);
-    }
-
-    /**
-     * Applies partial updates to a product.
-     *
-     * @param id the product ID
-     * @param updates fields to update
-     * @return the updated product
-     */
-    public Product patchProduct(Long id, Map<String, Object> updates) {
-        log.debug("Patching product with id: {}", id);
-
-        Product product = getProductById(id);
-
-        if (updates.containsKey("name")) {
-            product.setName((String) updates.get("name"));
+        
+        if (productDetails.getCategory() != null && productDetails.getCategory().getId() != null) {
+            Category category = categoryRepository.findById(productDetails.getCategory().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Category not found"));
+            existingProduct.setCategory(category);
         }
-        if (updates.containsKey("description")) {
-            product.setDescription((String) updates.get("description"));
-        }
-        if (updates.containsKey("price")) {
-            product.setPrice(new BigDecimal(updates.get("price").toString()));
-        }
-        if (updates.containsKey("stockQuantity")) {
-            product.setStockQuantity(Integer.valueOf(updates.get("stockQuantity").toString()));
-        }
-        if (updates.containsKey("imageUrl")) {
-            product.setImageUrl((String) updates.get("imageUrl"));
-        }
-        if (updates.containsKey("categoryId")) {
-            Long categoryId = Long.valueOf(updates.get("categoryId").toString());
-            Category category = new Category();
-            category.setId(categoryId);
-            product.setCategory(resolveCategory(category));
-        }
-
-        validateProduct(product);
-        return productRepository.save(product);
+        
+        Product updatedProduct = productRepository.save(existingProduct);
+        return convertToDTO(updatedProduct);
     }
     
-    /**
-     * Deletes a product by ID.
-     * Replaces manual list removal with repository delete().
-     * 
-     * @param id the product ID
-     * @throws EntityNotFoundException if product not found
-     */
     public void deleteProduct(Long id) {
         log.debug("Deleting product with id: {}", id);
-        
         if (!productRepository.existsById(id)) {
             throw new EntityNotFoundException("Product not found with id: " + id);
         }
-        
         productRepository.deleteById(id);
-        log.info("Successfully deleted product with id: {}", id);
     }
     
     // ==================== Custom Query Methods ====================
     
-    /**
-     * Finds products by category name.
-     * Uses JPA method naming convention (NOT manual filtering).
-     * 
-     * @param categoryName the category name
-     * @return List of products in the category
-     */
     @Transactional(readOnly = true)
-    public List<Product> getProductsByCategoryName(String categoryName) {
-        log.debug("Fetching products in category: {}", categoryName);
-        return productRepository.findByCategoryName(categoryName);
-    }
-
-    /**
-     * Filters products using the query methods supported by the service layer.
-     *
-     * @param filterType supported values: category, name, lowStock
-     * @param filterValue filter input value
-     * @return matching products
-     */
-    @Transactional(readOnly = true)
-    public List<Product> filterProducts(String filterType, String filterValue) {
-        log.debug("Filtering products by {} with value {}", filterType, filterValue);
-
-        return switch (filterType.toLowerCase()) {
-            case "category" -> getProductsByCategoryName(filterValue);
-            case "name" -> searchProductsByName(filterValue);
-            case "lowstock" -> getLowStockProducts(Integer.parseInt(filterValue));
-            default -> throw new IllegalArgumentException("Unsupported filter type: " + filterType);
-        };
+    public List<ProductDTO> getProductsByCategoryName(String categoryName) {
+        List<Product> products = productRepository.findByCategoryName(categoryName);
+        return products.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
     
-    /**
-     * Finds products within a price range.
-     * Uses JPQL custom query.
-     * 
-     * @param minPrice minimum price
-     * @param maxPrice maximum price
-     * @return List of products in the price range
-     */
     @Transactional(readOnly = true)
-    public List<Product> getProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
-        log.debug("Fetching products between price {} and {}", minPrice, maxPrice);
-        
-        if (minPrice.compareTo(BigDecimal.ZERO) < 0 || maxPrice.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Price cannot be negative");
-        }
-        
-        if (minPrice.compareTo(maxPrice) > 0) {
-            throw new IllegalArgumentException("Min price cannot be greater than max price");
-        }
-        
-        return productRepository.findProductsInPriceRange(minPrice, maxPrice);
+    public List<ProductDTO> getProductsByPriceRange(BigDecimal min, BigDecimal max) {
+        // Use findByPriceBetween or findProductsByPriceRange
+        List<Product> products = productRepository.findByPriceBetween(min, max);
+        return products.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
     
-    /**
-     * Searches products by name (case-insensitive).
-     * Uses method naming convention.
-     * 
-     * @param searchTerm the search term
-     * @return List of matching products
-     */
     @Transactional(readOnly = true)
-    public List<Product> searchProductsByName(String searchTerm) {
-        log.debug("Searching products with name containing: {}", searchTerm);
-        return productRepository.findByNameContainingIgnoreCase(searchTerm);
+    public List<ProductDTO> searchProductsByName(String searchTerm) {
+        List<Product> products = productRepository.findByNameContainingIgnoreCase(searchTerm);
+        return products.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
     
-    /**
-     * Gets low stock products for inventory alerts.
-     * 
-     * @param threshold stock threshold
-     * @return List of products with stock below threshold
-     */
     @Transactional(readOnly = true)
-    public List<Product> getLowStockProducts(int threshold) {
-        log.debug("Fetching products with stock below {}", threshold);
-        return productRepository.findByStockQuantityLessThan(threshold);
+    public List<ProductDTO> getLowStockProducts(int threshold) {
+        List<Product> products = productRepository.findByStockQuantityLessThan(threshold);
+        return products.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
     
-    /**
-     * Gets count of products in a category.
-     * Uses JPQL aggregation query.
-     * 
-     * @param categoryName the category name
-     * @return product count
-     */
     @Transactional(readOnly = true)
     public long getProductCountByCategory(String categoryName) {
-        log.debug("Counting products in category: {}", categoryName);
         return productRepository.countByCategoryName(categoryName);
     }
-
-    private void validateProduct(Product product) {
-        if (product.getName() == null || product.getName().isBlank()) {
-            throw new IllegalArgumentException("Product name is required");
+    
+    // ==================== DTO Conversion ====================
+    
+    private ProductDTO convertToDTO(Product product) {
+        ProductDTO.CategoryDTO categoryDTO = null;
+        if (product.getCategory() != null) {
+            categoryDTO = new ProductDTO.CategoryDTO(
+                product.getCategory().getId(),
+                product.getCategory().getName()
+            );
         }
-
-        if (product.getPrice() == null || product.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Product price must be greater than zero");
-        }
-
-        if (product.getStockQuantity() == null || product.getStockQuantity() < 0) {
-            throw new IllegalArgumentException("Stock quantity cannot be negative");
-        }
-    }
-
-    private Category resolveCategory(Category category) {
-        if (category == null || category.getId() == null) {
-            return null;
-        }
-
-        return categoryRepository.findById(category.getId())
-            .orElseThrow(() -> new EntityNotFoundException(
-                "Category not found with id: " + category.getId()
-            ));
+        
+        return new ProductDTO(
+            product.getId(),
+            product.getName(),
+            product.getDescription(),
+            product.getPrice(),
+            product.getStockQuantity(),
+            product.getImageUrl(),
+            categoryDTO
+        );
     }
 }
