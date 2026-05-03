@@ -83,7 +83,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**", "/api/categories").permitAll()
                 
                 // Authentication endpoints
-                .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/me").permitAll()
+                .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                 
                 // Protected endpoints - require ADMIN role
                 .requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
