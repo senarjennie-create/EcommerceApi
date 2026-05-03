@@ -1,5 +1,6 @@
 package com.ws101.senardelacerna.ecommerceapi.controller;
 
+import com.ws101.senardelacerna.ecommerceapi.dto.CreateProductDto;
 import com.ws101.senardelacerna.ecommerceapi.dto.ProductDTO;
 import com.ws101.senardelacerna.ecommerceapi.entity.Product;
 import com.ws101.senardelacerna.ecommerceapi.service.ProductService;
@@ -57,12 +58,12 @@ public class ProductController {
      * ADMIN ONLY - requires ADMIN role
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ProductDTO> createProduct(@Valid @RequestBody Product product) {
-        log.info("POST /api/products - Creating product: {}", product.getName());
-        ProductDTO savedProduct = productService.createProduct(product);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedProduct);
-    }
+@PreAuthorize("hasRole('ADMIN')")
+public ResponseEntity<ProductDTO> createProduct(@Valid @RequestBody CreateProductDto productDto) {
+    log.info("POST /api/products - Creating product: {}", productDto.getName());
+    ProductDTO savedProduct = productService.createProduct(productDto);
+    return ResponseEntity.status(HttpStatus.CREATED).body(savedProduct);
+}
 
     /**
      * PUT /api/products/{id} - Update an existing product.

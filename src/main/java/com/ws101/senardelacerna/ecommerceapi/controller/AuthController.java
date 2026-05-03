@@ -2,7 +2,7 @@ package com.ws101.senardelacerna.ecommerceapi.controller;
 
 import com.ws101.senardelacerna.ecommerceapi.dto.AuthResponse;
 import com.ws101.senardelacerna.ecommerceapi.dto.LoginRequest;
-import com.ws101.senardelacerna.ecommerceapi.dto.RegisterRequest;
+import com.ws101.senardelacerna.ecommerceapi.dto.RegisterUserDto;
 import com.ws101.senardelacerna.ecommerceapi.entity.Role;
 import com.ws101.senardelacerna.ecommerceapi.entity.User;
 import com.ws101.senardelacerna.ecommerceapi.repository.UserRepository;
@@ -34,7 +34,7 @@ public class AuthController {
      * Public endpoint - anyone can register
      */
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterUserDto request) {
         log.info("Registering new user: {}", request.getUsername());
         
         // Check if username already exists

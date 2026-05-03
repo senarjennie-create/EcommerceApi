@@ -1,5 +1,6 @@
 package com.ws101.senardelacerna.ecommerceapi.service;
 
+import com.ws101.senardelacerna.ecommerceapi.dto.CreateProductDto;
 import com.ws101.senardelacerna.ecommerceapi.dto.ProductDTO;
 import com.ws101.senardelacerna.ecommerceapi.entity.Category;
 import com.ws101.senardelacerna.ecommerceapi.entity.Product;
@@ -41,16 +42,30 @@ public class ProductService {
         return convertToDTO(product);
     }
     
-    public ProductDTO createProduct(Product product) {
-        log.debug("Creating new product: {}", product.getName());
+    /**
+     * Create a new product using CreateProductDto
+     * Validates and converts DTO to Entity before saving
+     */
+    public ProductDTO createProduct(CreateProductDto productDto) {
+        log.debug("Creating new product: {}", productDto.getName());
         
-        if (product.getCategory() != null && product.getCategory().getId() != null) {
-            Category category = categoryRepository.findById(product.getCategory().getId())
-                .orElseThrow(() -> new EntityNotFoundException("Category not found"));
+        // Convert DTO to Entity
+        Product product = new Product();
+        product.setName(productDto.getName());
+        product.setDescription(productDto.getDescription());
+        product.setPrice(BigDecimal.valueOf(productDto.getPrice()));
+        product.setStockQuantity(productDto.getStockQuantity());
+        product.setImageUrl(productDto.getImageUrl());
+        
+        // Set category if categoryId is provided
+        if (productDto.getCategoryId() != null) {
+            Category category = categoryRepository.findById(productDto.getCategoryId())
+                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + productDto.getCategoryId()));
             product.setCategory(category);
         }
         
         Product savedProduct = productRepository.save(product);
+        log.info("Product created successfully with id: {}", savedProduct.getId());
         return convertToDTO(savedProduct);
     }
     
@@ -82,6 +97,7 @@ public class ProductService {
             throw new EntityNotFoundException("Product not found with id: " + id);
         }
         productRepository.deleteById(id);
+        log.info("Product deleted successfully with id: {}", id);
     }
     
     // ==================== Custom Query Methods ====================
@@ -94,7 +110,6 @@ public class ProductService {
     
     @Transactional(readOnly = true)
     public List<ProductDTO> getProductsByPriceRange(BigDecimal min, BigDecimal max) {
-        // Use findByPriceBetween or findProductsByPriceRange
         List<Product> products = productRepository.findByPriceBetween(min, max);
         return products.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
