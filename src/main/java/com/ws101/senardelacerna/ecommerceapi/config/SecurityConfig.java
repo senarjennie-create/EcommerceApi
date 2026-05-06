@@ -66,30 +66,24 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         
         http
-            // CSRF Configuration
-            .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/api/auth/register", "/api/auth/login")
-                .ignoringRequestMatchers("/h2-console/**")
-            )
+            // CSRF disabled for the current frontend flow
+            .csrf(csrf -> csrf.disable())
             
-            // Authorization Rules
-            .authorizeHttpRequests(authz -> authz
+            .authorizeHttpRequests(auth -> auth
                 // Public endpoints
                 .requestMatchers("/", "/index.html", "/login.html", "/register.html", "/logout").permitAll()
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/image/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**", "/api/categories").permitAll()
                 
                 // Public API endpoints (GET)
                 .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**", "/api/categories").permitAll()
-                
-                // Authentication endpoints
-                .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
-                
-                // Protected endpoints - require ADMIN role
                 .requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/auth/me").authenticated()
                 
                 // User endpoints - require authentication
                 .requestMatchers("/api/orders/**", "/api/cart/**").authenticated()

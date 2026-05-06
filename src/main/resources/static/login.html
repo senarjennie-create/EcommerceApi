@@ -54,17 +54,33 @@
             color: white;
             border: none;
             border-radius: 5px;
-            font-size: 16px;
             cursor: pointer;
             transition: background 0.3s;
         }
-        button:hover {
+        button:hover:not(:disabled) {
             background: #d35400;
         }
-        .error {
-            color: #e74c3c;
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .message {
+            display: none;
             text-align: center;
             margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .message.error {
+            display: block;
+            color: #e74c3c;
+            background: #ffe6e6;
+        }
+        .message.success {
+            display: block;
+            color: #27ae60;
+            background: #d4edda;
         }
         .register-link {
             text-align: center;
@@ -80,31 +96,127 @@
     <div class="login-container">
         <h1>Login to Clothing Shop</h1>
         
-        <form action="/login" method="post">
+        <form id="loginForm">
             <div class="form-group">
-                <label>Username</label>
-                <input type="text" name="username" required>
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="username" aria-label="Username">
             </div>
             <div class="form-group">
-                <label>Password</label>
-                <input type="password" name="password" required>
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password" aria-label="Password">
             </div>
-            <button type="submit">Login</button>
+            <button type="submit" id="loginBtn">Login</button>
         </form>
         
         <div class="register-link">
             Don't have an account? <a href="/register.html">Register here</a>
         </div>
         
-        <div id="error" class="error"></div>
+        <div id="message" class="message" role="alert" aria-live="polite"></div>
     </div>
     
     <script>
-        // Check for error in URL
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('error')) {
-            document.getElementById('error').textContent = 'Invalid username or password';
+        const API_URL = window.location.hostname === 'localhost' && window.location.port === '5500'
+            ? 'http://localhost:8080/api'
+            : '/api';
+
+        // Helper function to get CSRF token from cookie
+        function getCsrfToken() {
+            const name = 'XSRF-TOKEN=';
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.indexOf(name) === 0) {
+                    return cookie.substring(name.length);
+                }
+            }
+            return null;
         }
+
+        async function loadCsrfToken() {
+            await fetch(`${API_URL}/products`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await loadCsrfToken();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const messageDiv = document.getElementById('message');
+            const loginBtn = document.getElementById('loginBtn');
+            
+            // Validate inputs
+            if (!username || !password) {
+                messageDiv.textContent = 'Please enter both username and password';
+                messageDiv.className = 'message error';
+                return;
+            }
+            
+            // Clear previous messages
+            messageDiv.textContent = '';
+            messageDiv.className = 'message';
+            
+            // Disable button to prevent duplicate submissions
+            loginBtn.disabled = true;
+            const originalText = loginBtn.textContent;
+            loginBtn.textContent = 'Logging in...';
+            
+            try {
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                // Add CSRF token if available (for Spring Security)
+                const csrfToken = getCsrfToken();
+                if (csrfToken) {
+                    headers['X-XSRF-TOKEN'] = csrfToken;
+                }
+                
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: headers,
+                    credentials: 'include',
+                    body: JSON.stringify({ username, password })
+                });
+                
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    // Response body is not JSON
+                }
+                
+                if (response.ok) {
+                    messageDiv.textContent = 'Login successful! Redirecting...';
+                    messageDiv.className = 'message success';
+                    
+                    // Redirect to home page
+                    setTimeout(() => {
+                        window.location.href = '/index.html';
+                    }, 1000);
+                } else {
+                    const errorMessage = data.message || data.error || 'Invalid username or password';
+                    messageDiv.textContent = errorMessage;
+                    messageDiv.className = 'message error';
+                    
+                    // Re-enable button on error
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = originalText;
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                messageDiv.textContent = 'Network error. Please try again.';
+                messageDiv.className = 'message error';
+                
+                // Re-enable button on error
+                loginBtn.disabled = false;
+                loginBtn.textContent = originalText;
+            }
+        });
     </script>
 </body>
 </html>

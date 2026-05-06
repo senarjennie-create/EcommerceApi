@@ -78,6 +78,32 @@
     </main>
 
     <script src="/js/script.js"></script>
+    <script>
+        // Check authentication on page load
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    // Not authenticated, redirect to login
+                    window.location.href = '/login.html';
+                    return;
+                }
+                
+                const user = await response.json();
+                console.log('Authenticated user:', user);
+                
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                window.location.href = '/login.html';
+            }
+        }
+        
+        // Check auth when page loads
+        document.addEventListener('DOMContentLoaded', checkAuth);
+    </script>
 
     <footer>
         <p>&copy; 2026 Senar Products. All rights reserved.</p>

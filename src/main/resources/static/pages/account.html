@@ -62,6 +62,38 @@
     </section>
 
     <script src="/js/script.js"></script>
+    <script>
+        // Check authentication on page load
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    // Not authenticated, redirect to login
+                    window.location.href = '/login.html';
+                    return;
+                }
+                
+                const user = await response.json();
+                console.log('Authenticated user:', user);
+                
+                // Update welcome message with actual user name
+                const welcomeElement = document.querySelector('.account-welcome h1');
+                if (welcomeElement && user.username) {
+                    welcomeElement.textContent = `Welcome, ${user.username}`;
+                }
+                
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                window.location.href = '/login.html';
+            }
+        }
+        
+        // Check auth when page loads
+        document.addEventListener('DOMContentLoaded', checkAuth);
+    </script>
 </body>
 
 </html>
