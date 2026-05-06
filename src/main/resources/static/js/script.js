@@ -34,7 +34,8 @@ async function fetchAPI(url, options = {}) {
         headers: {
             "Content-Type": "application/json",
             "Accept": "application/json"
-        }
+        },
+        credentials: 'include'  // Include cookies for session
     };
     
     const mergedOptions = { ...defaultOptions, ...options };
@@ -43,6 +44,21 @@ async function fetchAPI(url, options = {}) {
         console.log(`🌐 API Request: ${mergedOptions.method || 'GET'} ${url}`);
         
         const response = await fetch(url, mergedOptions);
+        
+        // TASK 7: Handle 401 Unauthorized - Not logged in
+        if (response.status === 401) {
+            console.warn("401 Unauthorized - Redirecting to login");
+            sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
+            window.location.href = '/login.html';
+            throw new ApiRequestError("Authentication required. Please login.", 401);
+        }
+        
+        // TASK 7: Handle 403 Forbidden - Wrong role
+        if (response.status === 403) {
+            console.warn("403 Forbidden - Access denied");
+            alert("Access Denied: You don't have permission to access this resource.");
+            throw new ApiRequestError("Access denied. Insufficient permissions.", 403);
+        }
         
         if (!response.ok) {
             let errorMessage = `HTTP ${response.status}: ${response.statusText}`;

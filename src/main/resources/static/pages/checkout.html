@@ -69,45 +69,49 @@
             <h2>Order Summary</h2>
 
             <p>Items: <span id="item-count">0</span></p>
-            <p>Subtotal: <strong id="subtotal-amount">&#8369;0</strong></p>
-            <p>Shipping: <strong id="shipping-fee">&#8369;0</strong></p>
-            <p>Total: <strong id="total-amount">&#8369;0</strong></p>
+            <p>Subtotal: <strong id="subtotal-amount">₱0</strong></p>
+            <p>Shipping: <strong id="shipping-fee">₱0</strong></p>
+            <p>Total: <strong id="total-amount">₱0</strong></p>
 
             <button id="place-order-btn">Place Order</button>
         </aside>
     </main>
 
-    <script src="/js/script.js"></script>
+    <footer>
+        <p>&copy; 2026 Senar Products. All rights reserved.</p>
+    </footer>
+
+    <!-- Protected Route Script - Redirect to login if not authenticated -->
     <script>
-        // Check authentication on page load
+        // Check if user is logged in before accessing checkout page
         async function checkAuth() {
             try {
                 const response = await fetch('/api/auth/me', {
+                    method: 'GET',
                     credentials: 'include'
                 });
                 
-                if (!response.ok) {
-                    // Not authenticated, redirect to login
+                const data = await response.json();
+                
+                if (!response.ok || data.success === false || !data.id) {
+                    // Not logged in, save current page and redirect to login
+                    sessionStorage.setItem('redirectAfterLogin', '/pages/checkout.html');
                     window.location.href = '/login.html';
-                    return;
+                } else {
+                    console.log('Authenticated user:', data.username);
                 }
-                
-                const user = await response.json();
-                console.log('Authenticated user:', user);
-                
             } catch (error) {
                 console.error('Auth check failed:', error);
+                sessionStorage.setItem('redirectAfterLogin', '/pages/checkout.html');
                 window.location.href = '/login.html';
             }
         }
         
-        // Check auth when page loads
-        document.addEventListener('DOMContentLoaded', checkAuth);
+        // Run auth check when page loads
+        checkAuth();
     </script>
-
-    <footer>
-        <p>&copy; 2026 Senar Products. All rights reserved.</p>
-    </footer>
+    
+    <script src="/js/script.js"></script>
 </body>
 
 </html>

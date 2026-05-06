@@ -116,107 +116,47 @@
     </div>
     
     <script>
-        const API_URL = window.location.hostname === 'localhost' && window.location.port === '5500'
-            ? 'http://localhost:8080/api'
-            : '/api';
-
-        // Helper function to get CSRF token from cookie
-        function getCsrfToken() {
-            const name = 'XSRF-TOKEN=';
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.indexOf(name) === 0) {
-                    return cookie.substring(name.length);
-                }
-            }
-            return null;
-        }
-
-        async function loadCsrfToken() {
-            await fetch(`${API_URL}/products`, {
-                method: 'GET',
-                credentials: 'include'
-            });
-        }
-
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await loadCsrfToken();
-            
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-            const messageDiv = document.getElementById('message');
-            const loginBtn = document.getElementById('loginBtn');
-            
-            // Validate inputs
-            if (!username || !password) {
-                messageDiv.textContent = 'Please enter both username and password';
-                messageDiv.className = 'message error';
-                return;
-            }
-            
-            // Clear previous messages
-            messageDiv.textContent = '';
-            messageDiv.className = 'message';
-            
-            // Disable button to prevent duplicate submissions
-            loginBtn.disabled = true;
-            const originalText = loginBtn.textContent;
-            loginBtn.textContent = 'Logging in...';
-            
-            try {
-                const headers = {
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const messageDiv = document.getElementById('message');
+        
+        messageDiv.textContent = '';
+        messageDiv.className = '';
+        
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
                     'Content-Type': 'application/json'
-                };
+                },
+                body: JSON.stringify({ username, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                messageDiv.textContent = 'Login successful! Redirecting...';
+                messageDiv.className = 'success';
                 
-                // Add CSRF token if available (for Spring Security)
-                const csrfToken = getCsrfToken();
-                if (csrfToken) {
-                    headers['X-XSRF-TOKEN'] = csrfToken;
-                }
+                // Redirect to original page or home
+                const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/';
+                sessionStorage.removeItem('redirectAfterLogin');
                 
-                const response = await fetch(`${API_URL}/auth/login`, {
-                    method: 'POST',
-                    headers: headers,
-                    credentials: 'include',
-                    body: JSON.stringify({ username, password })
-                });
-                
-                let data = {};
-                try {
-                    data = await response.json();
-                } catch (e) {
-                    // Response body is not JSON
-                }
-                
-                if (response.ok) {
-                    messageDiv.textContent = 'Login successful! Redirecting...';
-                    messageDiv.className = 'message success';
-                    
-                    // Redirect to home page
-                    setTimeout(() => {
-                        window.location.href = '/index.html';
-                    }, 1000);
-                } else {
-                    const errorMessage = data.message || data.error || 'Invalid username or password';
-                    messageDiv.textContent = errorMessage;
-                    messageDiv.className = 'message error';
-                    
-                    // Re-enable button on error
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = originalText;
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                messageDiv.textContent = 'Network error. Please try again.';
-                messageDiv.className = 'message error';
-                
-                // Re-enable button on error
-                loginBtn.disabled = false;
-                loginBtn.textContent = originalText;
+                setTimeout(() => {
+                    window.location.href = redirectUrl;
+                }, 1000);
+            } else {
+                messageDiv.textContent = data.message || 'Invalid username or password';
+                messageDiv.className = 'error';
             }
-        });
-    </script>
+        } catch (error) {
+            messageDiv.textContent = 'Network error. Please try again.';
+            messageDiv.className = 'error';
+        }
+    });
+</script>
 </body>
 </html>
