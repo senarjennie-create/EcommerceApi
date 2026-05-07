@@ -4,6 +4,8 @@ A full-stack e-commerce application with Spring Boot backend and responsive vani
 
 ## 📋 Table of Contents
 - [Technologies Used](#technologies-used)
+- [Security Architecture](#security-architecture)
+- [Validation Rules](#validation-rules)
 - [Database Schema](#database-schema)
 - [API Endpoints](#api-endpoints)
 - [Screenshots](#screenshots)
@@ -18,6 +20,7 @@ A full-stack e-commerce application with Spring Boot backend and responsive vani
 |------------|---------|---------|
 | Java | 25 | Programming Language |
 | Spring Boot | 4.0.5 | Framework |
+| Spring Security | 4.0.5 | Authentication & Authorization |
 | Spring Data JPA | - | Database Access |
 | H2 Database | - | Development Database |
 | MySQL | 8.0 | Production Database |
@@ -31,11 +34,107 @@ A full-stack e-commerce application with Spring Boot backend and responsive vani
 | JavaScript (Vanilla) | Interactivity |
 | Fetch API | Backend Communication |
 
-## 🗄️ Database Schema
+## 🔐 Security Architecture
 
-### Tables Structure
+### Session-Based Authentication
 
-```sql
+This application uses **Session-Based Authentication** (HTTP sessions + cookies) instead of JWT.
+
+#### How Session-Based Auth Works:
+┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+│ Client │ │ Server │ │ Database │
+│ (Browser) │ │ (Backend) │ │ (MySQL) │
+└──────┬──────┘ └──────┬──────┘ └──────┬──────┘
+│ │ │
+│ 1. POST /login │ │
+│ (username/pass) │ │
+│──────────────────>│ │
+│ │ 2. Verify creds │
+│ │──────────────────>│
+│ │<──────────────────│
+│ 3. JSESSIONID │ │
+│ cookie set │ │
+│<──────────────────│ │
+│ │ │
+│ 4. GET /products │ │
+│ (with cookie) │ │
+│──────────────────>│ 5. Validate │
+│ │ session & role │
+│ 6. Return data │ │
+│<──────────────────│ │
+
+text
+
+#### Security Features:
+
+| Feature | Implementation |
+|---------|----------------|
+| Password Storage | BCryptPasswordEncoder (hashing + salting) |
+| Session Management | One session per user, 30-minute timeout |
+| Cookie Security | HTTP-only, secure flag in production |
+| CSRF Protection | Enabled for state-changing requests |
+| Session Fixation Protection | New session created after login |
+
+#### Role-Based Access Control (RBAC):
+
+| Role | Permissions |
+|------|-------------|
+| **ADMIN** | Full CRUD operations on all products, categories, users |
+| **USER** | View products, manage cart, place orders |
+| **SELLER** | Manage own products |
+
+#### Authentication Flow:
+
+1. **Login:** User submits credentials to `/api/auth/login`
+2. **Verification:** Server validates using BCrypt password encoder
+3. **Session Creation:** New HTTP session created with JSESSIONID cookie
+4. **Authorization:** User roles loaded from database
+5. **Request Processing:** Session validated on each subsequent request
+6. **Logout:** Session invalidated and cookie cleared
+
+## ✅ Validation Rules
+
+### Product Validation (CreateProductDto)
+
+| Field | Constraint | Error Message |
+|-------|------------|----------------|
+| `name` | `@NotBlank`, `@Size(min=2, max=100)` | "Product name is required", "Name must be between 2-100 characters" |
+| `price` | `@NotNull`, `@Positive` | "Price is required", "Price must be greater than 0" |
+| `stockQuantity` | `@NotNull`, `@Positive` | "Stock quantity is required", "Stock must be greater than or equal to 0" |
+| `description` | `@Size(max=500)` | "Description cannot exceed 500 characters" |
+
+### User Registration Validation (RegisterUserDto)
+
+| Field | Constraint | Error Message |
+|-------|------------|----------------|
+| `username` | `@NotBlank`, `@Size(min=3, max=50)` | "Username is required", "Username must be between 3-50 characters" |
+| `password` | `@NotBlank`, `@Size(min=6, max=100)` | "Password is required", "Password must be at least 6 characters" |
+| `email` | `@NotBlank`, `@Email` | "Email is required", "Please provide a valid email address" |
+
+### Validation Error Response Example
+
+```json
+{
+    "timestamp": "2026-05-07T10:00:00",
+    "status": 400,
+    "error": "Validation Failed",
+    "message": "Validation failed",
+    "errors": {
+        "price": "Price must be greater than 0"
+    },
+    "path": "/api/products"
+}
+Global Exception Handling
+The application uses @ControllerAdvice to handle validation errors globally:
+
+Exception	HTTP Status	Description
+MethodArgumentNotValidException	400 Bad Request	Validation failed
+EntityNotFoundException	404 Not Found	Resource not found
+DataIntegrityViolationException	400 Bad Request	Duplicate entry
+AccessDeniedException	403 Forbidden	Insufficient permissions
+🗄️ Database Schema
+Tables Structure
+sql
 -- Categories Table
 CREATE TABLE categories (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -53,6 +152,16 @@ CREATE TABLE products (
     image_url VARCHAR(500),
     category_id BIGINT,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+);
+
+-- Users Table
+CREATE TABLE users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    role VARCHAR(20) NOT NULL,
+    enabled BOOLEAN DEFAULT TRUE
 );
 
 -- Orders Table
@@ -113,100 +222,115 @@ text
                           │ customer_email  │
                           │ total_amount    │
                           └─────────────────┘
-Database Tables (Populated Data)
-https://screenshots/database-table.png
-
-Figure 1: Products table with sample data (8 products)
-
-https://screenshots/database-schema.png
-
-Figure 2: Database schema showing all tables
-
 📡 API Endpoints
 Base URL: http://localhost:8080/api
-Products Endpoints
-Method	Endpoint	Description	Request Body	Response
-GET	/products	Get all products	-	200 OK + Product array
-GET	/products/{id}	Get product by ID	-	200 OK + Product object
-POST	/products	Create new product	Product JSON	201 CREATED + Product
-PUT	/products/{id}	Update product	Product JSON	200 OK + Updated product
-DELETE	/products/{id}	Delete product	-	204 NO CONTENT
-GET	/products/category/{name}	Filter by category	-	200 OK + Filtered products
-GET	/products/search/price?min=&max=	Filter by price range	-	200 OK + Filtered products
-Categories Endpoints
-Method	Endpoint	Description	Request Body	Response
-GET	/categories	Get all categories	-	200 OK + Category array
-GET	/categories/{id}	Get category by ID	-	200 OK + Category object
-POST	/categories	Create category	Category JSON	201 CREATED + Category
-PUT	/categories/{id}	Update category	Category JSON	200 OK + Updated category
-DELETE	/categories/{id}	Delete category	-	204 NO CONTENT
+Authentication Endpoints
+Method	Endpoint	Description	Auth Required
+POST	/auth/register	Register new user	Public
+POST	/auth/login	Login and get session cookie	Public
+GET	/auth/me	Get current user info	Authenticated
+POST	/auth/logout	Logout and invalidate session	Authenticated
+Product Endpoints
+Method	Endpoint	Description	Auth Required
+GET	/products	Get all products	Public
+GET	/products/{id}	Get product by ID	Public
+GET	/products/category/{name}	Filter by category	Public
+GET	/products/search/price?min=&max=	Filter by price range	Public
+POST	/products	Create new product	ADMIN only
+PUT	/products/{id}	Update product	ADMIN only
+DELETE	/products/{id}	Delete product	ADMIN only
+Category Endpoints
+Method	Endpoint	Description	Auth Required
+GET	/categories	Get all categories	Public
+GET	/categories/{id}	Get category by ID	Public
+POST	/categories	Create category	ADMIN only
+PUT	/categories/{id}	Update category	ADMIN only
+DELETE	/categories/{id}	Delete category	ADMIN only
+HTTP Status Codes
+Status	Description
+200 OK	Request successful
+201 Created	Resource created successfully
+204 No Content	Deletion successful
+400 Bad Request	Validation failed or invalid input
+401 Unauthorized	Not authenticated / session expired
+403 Forbidden	Authenticated but insufficient permissions
+404 Not Found	Resource does not exist
+500 Internal Server Error	Server-side error
 Example API Calls
 bash
-# Get all products
+# Register a new user
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"john","password":"password123","email":"john@example.com","role":"USER"}'
+
+# Login (get JSESSIONID cookie)
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"john","password":"password123"}' \
+  -c cookies.txt
+
+# Get all products (public)
 curl http://localhost:8080/api/products
 
-# Create a new product
+# Create product (ADMIN only - requires cookie)
 curl -X POST http://localhost:8080/api/products \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "Elegant Dress",
-    "description": "Perfect for special occasions",
-    "price": 350.00,
-    "stockQuantity": 25,
-    "imageUrl": "image/dress.jpg",
-    "category": { "id": 1 }
-  }'
+  -d '{"name":"New Product","price":99.99,"stockQuantity":10}' \
+  -b cookies.txt
 
 # Get products by category
 curl http://localhost:8080/api/products/category/Dresses
 
 # Get products by price range
 curl http://localhost:8080/api/products/search/price?min=100&max=500
+
+# Logout
+curl -X POST http://localhost:8080/api/auth/logout -b cookies.txt
 📱 Screenshots
 Desktop View
 https://screenshots/desktop-view.png
 
-*Figure 3: Landing page on desktop (4-column product grid)*
+*Figure 1: Landing page on desktop (4-column product grid)*
 
 Mobile View
 https://screenshots/mobile-view.png
 
-*Figure 4: Landing page on mobile (1-column product grid, stacked navigation)*
+*Figure 2: Landing page on mobile (1-column product grid, stacked navigation)*
 
 Products Page
 https://screenshots/products-page.png
 
-Figure 5: Products listing page showing all items with Add to Cart buttons
+Figure 3: Products listing page showing all items with Add to Cart buttons
 
 Add to Cart Functionality
 https://screenshots/add-to-cart.png
 
-Figure 6: Product added to cart notification
+Figure 4: Product added to cart notification
 
 Shopping Cart
 https://screenshots/cart-page.png
 
-Figure 7: Cart page showing items with quantity controls and subtotal
+Figure 5: Cart page showing items with quantity controls and subtotal
 
 Remove from Cart
 https://screenshots/remove-cart.png
 
-Figure 8: Empty cart state after removing items
+Figure 6: Empty cart state after removing items
 
 Checkout Page
 https://screenshots/checkout-page.png
 
-Figure 9: Checkout form with validation and order summary
+Figure 7: Checkout form with validation and order summary
 
 Account Page
 https://screenshots/account-page.png
 
-Figure 10: User account page with order history
+Figure 8: User account page with order history
 
 Browser Console (Successful Fetch)
 https://screenshots/console-success.png
 
-Figure 11: Browser console showing successful API calls with no CORS errors
+Figure 9: Browser console showing successful API calls with no CORS errors
 
 🛠️ Setup Instructions
 Prerequisites
@@ -215,6 +339,8 @@ Java 17 or higher
 Gradle (included as wrapper)
 
 VS Code (for frontend) or any browser
+
+MySQL (optional, H2 works out of the box)
 
 Backend Setup
 bash
@@ -246,22 +372,21 @@ Navigate to src/main/resources/static/
 
 Double-click index.html
 
-Access H2 Console (Development)
-text
-URL: http://localhost:8080/h2-console
-JDBC URL: jdbc:h2:mem:ecommerce_db
-Username: sa
-Password: (leave empty)
 ✅ Testing Results
 Flow Test Results
 Test Case	Expected Result	Actual Result	Status
 Backend starts	Port 8080 listening	✅ Working	PASS
 Frontend loads	Products displayed	✅ 8 products loaded	PASS
 Products load from DB	Data from database	✅ From MySQL/H2	PASS
+User registration	New user created	✅ 201 Created	PASS
+User login	JSESSIONID cookie set	✅ Cookie received	PASS
+Session persistence	Survives requests	✅ Working	PASS
 Add to Cart	Item added to cart	✅ Notification shown	PASS
 Update quantity	Subtotal updates	✅ Real-time update	PASS
 Remove from cart	Item disappears	✅ Cart updates	PASS
 Data persistence	Survives restart	✅ Still there	PASS
+Logout	Session invalidated	✅ 200 OK	PASS
+Protected route	Redirects to login	✅ 401 Unauthorized	PASS
 Responsive Test Results
 Device	Screen Width	Grid Columns	Navigation	Status
 iPhone SE	375px	1 column	Stacked	✅ PASS
@@ -269,49 +394,72 @@ iPhone 12	390px	1 column	Stacked	✅ PASS
 iPad Mini	768px	2 columns	Horizontal	✅ PASS
 iPad Pro	1024px	3 columns	Horizontal	✅ PASS
 Desktop	1920px	4 columns	Horizontal	✅ PASS
-API Test Results
-Endpoint	Method	Status	Response Time
-/api/products	GET	✅ 200 OK	< 100ms
-/api/products/1	GET	✅ 200 OK	< 50ms
-/api/products	POST	✅ 201 Created	< 150ms
-/api/products/1	PUT	✅ 200 OK	< 100ms
-/api/products/1	DELETE	✅ 204 No Content	< 50ms
-/api/categories	GET	✅ 200 OK	< 50ms
 🐛 Error Handling
 Backend Error Responses
 404 - Product Not Found
 
 json
 {
-    "timestamp": "2026-04-30T10:00:00",
+    "timestamp": "2026-05-07T10:00:00",
     "status": 404,
     "error": "Not Found",
     "message": "Product not found with id: 999",
     "path": "/api/products/999"
 }
-400 - Duplicate Category
+400 - Validation Failed
 
 json
 {
-    "timestamp": "2026-04-30T10:00:00",
+    "timestamp": "2026-05-07T10:00:00",
     "status": 400,
-    "error": "Data Integrity Violation",
-    "message": "A record with this value already exists",
-    "path": "/api/categories"
+    "error": "Validation Failed",
+    "message": "Validation failed",
+    "errors": {
+        "price": "Price must be greater than 0"
+    },
+    "path": "/api/products"
+}
+401 - Unauthorized
+
+json
+{
+    "timestamp": "2026-05-07T10:00:00",
+    "status": 401,
+    "error": "Unauthorized",
+    "message": "Authentication required",
+    "path": "/api/orders"
+}
+403 - Forbidden
+
+json
+{
+    "timestamp": "2026-05-07T10:00:00",
+    "status": 403,
+    "error": "Forbidden",
+    "message": "Access denied",
+    "path": "/api/products"
 }
 Frontend Error Handling
 javascript
-async function fetchProducts() {
+async function fetchAPI(url, options = {}) {
     try {
-        const response = await fetch(PRODUCTS_ENDPOINT);
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+        const response = await fetch(url, mergedOptions);
+        
+        // Handle 401 Unauthorized - Redirect to login
+        if (response.status === 401) {
+            sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
+            window.location.href = '/login.html';
         }
+        
+        // Handle 403 Forbidden - Access denied message
+        if (response.status === 403) {
+            alert("Access Denied: You don't have permission.");
+        }
+        
         return await response.json();
     } catch (error) {
-        console.error("[fetchProducts] Failed:", error);
+        console.error("API Error:", error);
         showError(error.message);
-        return [];
     }
 }
 📁 Project Structure
@@ -319,29 +467,38 @@ text
 EcommerceApi/
 ├── src/main/java/com/ws101/senardelacerna/ecommerceapi/
 │   ├── config/
-│   │   └── WebConfig.java              # CORS Configuration
+│   │   ├── SecurityConfig.java        # Spring Security Configuration
+│   │   └── WebConfig.java             # CORS Configuration
 │   ├── controller/
-│   │   ├── ProductController.java      # Product REST endpoints
-│   │   └── CategoryController.java     # Category REST endpoints
+│   │   ├── AuthController.java        # Authentication endpoints
+│   │   ├── ProductController.java     # Product REST endpoints
+│   │   └── CategoryController.java    # Category REST endpoints
 │   ├── dto/
-│   │   └── ProductDTO.java             # Data Transfer Object
+│   │   ├── CreateProductDto.java      # Product creation DTO
+│   │   ├── RegisterUserDto.java       # User registration DTO
+│   │   ├── LoginRequest.java          # Login request DTO
+│   │   └── AuthResponse.java          # Authentication response DTO
 │   ├── entity/
-│   │   ├── Product.java                # Product JPA Entity
-│   │   ├── Category.java               # Category JPA Entity
-│   │   ├── Order.java                  # Order JPA Entity
-│   │   └── OrderItem.java              # OrderItem JPA Entity
+│   │   ├── User.java                  # User JPA Entity (implements UserDetails)
+│   │   ├── Role.java                  # User Role Enum
+│   │   ├── Product.java               # Product JPA Entity
+│   │   └── Category.java              # Category JPA Entity
 │   ├── repository/
-│   │   ├── ProductRepository.java      # Product CRUD
-│   │   ├── CategoryRepository.java     # Category CRUD
-│   │   ├── OrderRepository.java        # Order CRUD
-│   │   └── OrderItemRepository.java    # OrderItem CRUD
-│   └── service/
-│       ├── ProductService.java         # Product Business Logic
-│       └── CategoryService.java        # Category Business Logic
+│   │   ├── UserRepository.java        # User CRUD
+│   │   ├── ProductRepository.java     # Product CRUD
+│   │   └── CategoryRepository.java    # Category CRUD
+│   ├── service/
+│   │   ├── CustomUserDetailsService.java  # UserDetailsService implementation
+│   │   ├── ProductService.java        # Product Business Logic
+│   │   └── CategoryService.java       # Category Business Logic
+│   └── exception/
+│       └── GlobalExceptionHandler.java   # Global exception handling
 ├── src/main/resources/
-│   ├── application.properties          # Spring Config
-│   └── static/                         # Frontend Files
+│   ├── application.properties         # Spring Config
+│   └── static/                        # Frontend Files
 │       ├── index.html
+│       ├── login.html
+│       ├── register.html
 │       ├── pages/
 │       │   ├── products.html
 │       │   ├── cart.html
@@ -352,8 +509,8 @@ EcommerceApi/
 │       ├── js/
 │       │   └── script.js
 │       └── image/
-├── screenshots/                        # Documentation Images
-└── build.gradle                        # Gradle Configuration
+├── screenshots/                       # Documentation Images
+└── build.gradle                       # Gradle Configuration
 👨‍💻 Author
 Senar de Lacerna
 
@@ -362,17 +519,25 @@ Course: WS101 - Web Development
 Project: E-Commerce Clothing Shop API
 
 📅 Date
-April 30, 2026
+May 7, 2026
 
 🎯 Features Implemented
 Backend Features
 ✅ RESTful API endpoints
+
+✅ Spring Security with Session-Based Authentication
+
+✅ BCrypt password encoding
+
+✅ Role-based access control (USER, ADMIN, SELLER)
 
 ✅ JPA Entity relationships (One-to-Many, Many-to-One)
 
 ✅ Database persistence with H2/MySQL
 
 ✅ Global exception handling with @ControllerAdvice
+
+✅ Bean Validation with custom error messages
 
 ✅ CORS configuration for frontend access
 
@@ -381,7 +546,11 @@ Backend Features
 Frontend Features
 ✅ Fetch API with async/await
 
-✅ Error handling with try/catch
+✅ 401/403 error handling with redirect
+
+✅ Session-based authentication with cookies
+
+✅ Protected routes (checkout page)
 
 ✅ Responsive design (mobile, tablet, desktop)
 
