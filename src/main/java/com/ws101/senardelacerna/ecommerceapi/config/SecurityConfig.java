@@ -1,10 +1,12 @@
 package com.ws101.senardelacerna.ecommerceapi.config;
 
+import com.ws101.senardelacerna.ecommerceapi.security.JwtAuthenticationFilter;
 import com.ws101.senardelacerna.ecommerceapi.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -16,6 +18,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * Spring Security Configuration
@@ -30,6 +33,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
     
     private final CustomUserDetailsService userDetailsService;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
     
     /**
      * Password Encoder Bean
@@ -66,63 +70,36 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         
         http
-            // CSRF disabled for the current frontend flow
             .csrf(csrf -> csrf.disable())
+            .authenticationProvider(authenticationProvider())
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
             
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
-                .requestMatchers("/", "/index.html", "/login.html", "/register.html", "/logout").permitAll()
+                .requestMatchers("/", "/index.html", "/login.html", "/register.html").permitAll()
+                .requestMatchers("/pages/**").permitAll()
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/image/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**", "/api/categories").permitAll()
-                
-                // Public API endpoints (GET)
                 .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**", "/api/categories").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/auth/me").authenticated()
-                
-                // User endpoints - require authentication
                 .requestMatchers("/api/orders/**", "/api/cart/**").authenticated()
-                .requestMatchers("/cart.html", "/checkout.html").authenticated()
-                
-                // All other requests require authentication
                 .anyRequest().authenticated()
             )
-            
-            // Form Login Configuration
-            .formLogin(form -> form
-                .loginPage("/login.html")
-                .loginProcessingUrl("/login")
-                .defaultSuccessUrl("/", true)
-                .failureUrl("/login.html?error=true")
-                .permitAll()
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) ->
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
+                )
             )
-            
-            // Logout Configuration
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/")
-                .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID")
-                .permitAll()
-            )
-            
-            // Session Management
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                .maximumSessions(1)
-                .maxSessionsPreventsLogin(false)
-                .expiredUrl("/login.html?expired=true")
-            )
-            
-            // Headers Configuration
             .headers(headers -> headers
                 .frameOptions(frame -> frame.sameOrigin())
-            );
+            )
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         
         return http.build();
     }

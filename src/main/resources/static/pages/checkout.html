@@ -86,15 +86,24 @@
         // Check if user is logged in before accessing checkout page
         async function checkAuth() {
             try {
+                const token = localStorage.getItem('jwt_token');
+                if (!token) {
+                    sessionStorage.setItem('redirectAfterLogin', '/pages/checkout.html');
+                    window.location.href = '/login.html';
+                    return;
+                }
+
                 const response = await fetch('/api/auth/me', {
                     method: 'GET',
-                    credentials: 'include'
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
                 
                 const data = await response.json();
                 
                 if (!response.ok || data.success === false || !data.id) {
-                    // Not logged in, save current page and redirect to login
+                    localStorage.removeItem('jwt_token');
                     sessionStorage.setItem('redirectAfterLogin', '/pages/checkout.html');
                     window.location.href = '/login.html';
                 } else {
@@ -102,6 +111,7 @@
                 }
             } catch (error) {
                 console.error('Auth check failed:', error);
+                localStorage.removeItem('jwt_token');
                 sessionStorage.setItem('redirectAfterLogin', '/pages/checkout.html');
                 window.location.href = '/login.html';
             }

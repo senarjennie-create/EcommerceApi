@@ -66,12 +66,22 @@
         // Check authentication on page load
         async function checkAuth() {
             try {
+                const token = localStorage.getItem('jwt_token');
+                if (!token) {
+                    sessionStorage.setItem('redirectAfterLogin', '/pages/account.html');
+                    window.location.href = '/login.html';
+                    return;
+                }
+
                 const response = await fetch('/api/auth/me', {
-                    credentials: 'include'
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
                 
                 if (!response.ok) {
-                    // Not authenticated, redirect to login
+                    localStorage.removeItem('jwt_token');
+                    sessionStorage.setItem('redirectAfterLogin', '/pages/account.html');
                     window.location.href = '/login.html';
                     return;
                 }
@@ -87,6 +97,8 @@
                 
             } catch (error) {
                 console.error('Auth check failed:', error);
+                localStorage.removeItem('jwt_token');
+                sessionStorage.setItem('redirectAfterLogin', '/pages/account.html');
                 window.location.href = '/login.html';
             }
         }

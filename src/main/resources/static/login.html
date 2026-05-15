@@ -138,6 +138,9 @@
             const data = await response.json();
             
             if (response.ok) {
+                if (data.token) {
+                    localStorage.setItem('jwt_token', data.token);
+                }
                 messageDiv.textContent = 'Login successful! Redirecting...';
                 messageDiv.className = 'success';
                 

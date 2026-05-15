@@ -7,6 +7,7 @@ const API_BASE_URL = "http://localhost:8080/api";
 const PRODUCTS_ENDPOINT = `${API_BASE_URL}/products`;
 const CATEGORIES_ENDPOINT = `${API_BASE_URL}/categories`;
 const IMAGE_FALLBACK = "image/placeholder.jpg";
+const TOKEN_STORAGE_KEY = "jwt_token";
 
 // Global state
 let products = [];
@@ -30,15 +31,25 @@ class ApiRequestError extends Error {
 // ==========================
 
 async function fetchAPI(url, options = {}) {
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const authHeaders = token ? { "Authorization": `Bearer ${token}` } : {};
     const defaultOptions = {
         headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": "application/json",
+            ...authHeaders
         },
-        credentials: 'include'  // Include cookies for session
+        credentials: 'same-origin'
     };
     
-    const mergedOptions = { ...defaultOptions, ...options };
+    const mergedOptions = {
+        ...defaultOptions,
+        ...options,
+        headers: {
+            ...defaultOptions.headers,
+            ...(options.headers || {})
+        }
+    };
     
     try {
         console.log(`🌐 API Request: ${mergedOptions.method || 'GET'} ${url}`);
@@ -48,6 +59,7 @@ async function fetchAPI(url, options = {}) {
         // TASK 7: Handle 401 Unauthorized - Not logged in
         if (response.status === 401) {
             console.warn("401 Unauthorized - Redirecting to login");
+            localStorage.removeItem(TOKEN_STORAGE_KEY);
             sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
             window.location.href = '/login.html';
             throw new ApiRequestError("Authentication required. Please login.", 401);
