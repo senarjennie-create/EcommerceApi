@@ -191,7 +191,7 @@ Protected frontend pages:
 
 These pages:
 
-- check whether `jwt_token` exists
+- checks whether `jwt_token` exists
 - call `/api/auth/me`
 - allow access only if the token is valid
 - redirect to `/login.html` if the token is missing or invalid
@@ -331,11 +331,12 @@ Implemented successfully:
 - Protected routes using Bearer token authentication
 - Frontend integration using Fetch API and localStorage
 
+
 ## Author
+- Jennie N. Senar
+- Nicole Dela Cerna
 
-SenarDelacerna
-
-Course:
+Course: BSIT-2B
 
 - WS101
 
