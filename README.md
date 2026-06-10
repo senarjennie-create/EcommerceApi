@@ -354,6 +354,7 @@ EcommerceApi/
 │       └── image/
 ├── screenshots/                        # Documentation Images
 └── build.gradle                        # Gradle Configuration
+
 👨‍💻 Author
 Senar, Jennie N.
 Dela Cerna, Nicole M.
