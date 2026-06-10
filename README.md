@@ -355,7 +355,8 @@ EcommerceApi/
 ├── screenshots/                        # Documentation Images
 └── build.gradle                        # Gradle Configuration
 👨‍💻 Author
-Senar de Lacerna
+Senar, Jennie N.
+Dela Cerna, Nicole M.
 
 Course: WS101 - Web Development
 
